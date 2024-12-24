@@ -1,0 +1,235 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "fileTypes": [
+    "m"
+  ],
+  "name": "Nelson",
+  "patterns": [
+    {
+      "include": "#transpose"
+    },
+    {
+      "include": "#misc"
+    },
+    {
+      "include": "#functions"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#macros"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#brackets"
+    },
+    {
+      "include": "#parentheses"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "misc": {
+      "patterns": [
+        {
+          "match": "\\.\\.\\.\\s*$",
+          "name": "punctuation.separator.continuation.nelson"
+        }
+      ]
+    },
+    "brackets": {
+      "patterns": [
+        {
+          "begin": "(\\[)",
+          "beginCaptures": {
+            "1": {
+              "name": "meta.bracket.nelson"
+            }
+          },
+          "end": "(\\])",
+          "endCaptures": {
+            "1": {
+              "name": "meta.bracket.nelson"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#numbers"
+            }
+          ]
+        }
+      ]
+    },
+    "parentheses": {
+      "patterns": [
+        {
+          "begin": "(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "meta.bracket.nelson"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "meta.bracket.nelson"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#numbers"
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(and|break|else|elseif|end|false|for|if|not|or|function|return|true|while|switch|continue|case|otherwise|which|varargin|varargout|classdef|methods|properties)\\b",
+          "name": "keyword.control.nelson"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "match": "\\b(function)\\s+(?:[^=]*\\s*=\\s*)?(\\w+){1}",
+          "captures": {
+            "1": {
+              "name": "keyword.control.nelson"
+            },
+            "2": {
+              "name": "entity.name.function.nelson"
+            }
+          },
+          "name": "meta.function.nelson"
+        }
+      ]
+    },
+    "macros": {
+      "patterns": [
+        {
+          "name": "entity.name.function.nelson",
+          "match": "\\b(__MACROS__)"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "entity.name.function.nelson",
+          "match": "\\b(__BUILTINS__)"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "\\s*(?:<|<=|=|==|>=|>|~=)\\s*",
+          "name": "keyword.operator.relation.nelson"
+        },
+        {
+          "match": "\\s*(?:\\+|-|\\*|/|\\\\|\\^)\\s*",
+          "name": "keyword.operator.arithmetic.nelson"
+        },
+        {
+          "match": "\\s*(?:\\|\\||&&)\\s*",
+          "name": "keyword.operator.boolean.nelson"
+        },
+        {
+          "match": "(?:\\.\\.\\.|\\=|:|\\~|@)",
+          "name": "keyword.other.nelson"
+        }
+      ]
+    },
+    "number": {
+      "patterns": [
+        {
+          "comment": "number: hexa, octal, decimal, double, scientific and complex numbers",
+          "match": "((\\b0x[0-9a-fA-F]+\\b)|(\\b0o[0-7]+\\b)|((\\b[0-9]+\\.?[0-9]*)|(\\.[0-9]+))([eE][+-]?[0-9]+)?([ij])?)",
+          "name": "constant.numeric.nelson"
+        }
+      ]
+    },
+    "transpose": {
+      "match": "(\\]|\\))((?:\\.)?'*)",
+      "name": "keyword.operator.transpose.nelson"
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "(?<![\\w\\])])'",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.nelson"
+            }
+          },
+          "end": "'(?!')",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.nelson"
+            }
+          },
+          "name": "string.quoted.single.nelson",
+          "patterns": [
+            {
+              "match": "''|\"\"",
+              "name": "constant.character.escape.nelson"
+            }
+          ]
+        },
+        {
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.nelson"
+            }
+          },
+          "end": "\"(?!\")",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.nelson"
+            }
+          },
+          "name": "string.quoted.double.nelson",
+          "patterns": [
+            {
+              "match": "''|\"\"",
+              "name": "constant.character.escape.nelson"
+            }
+          ]
+        }
+      ]
+    },
+    "comment": {
+      "patterns": [
+        {
+          "begin": "%",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.nelson"
+            }
+          },
+          "end": "\\n",
+          "name": "comment.line.percentage.nelson"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.nelson"
+}

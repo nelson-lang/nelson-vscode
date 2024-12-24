@@ -1,2 +1,5 @@
 .vscode/**
+.vscode-test/**
 .gitignore
+vsc-extension-quickstart.md
+/syntax/generate_nelson_tmLanguage.m

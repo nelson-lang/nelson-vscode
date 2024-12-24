@@ -1,51 +1,97 @@
 {
-    "name": "nelson",
-    "displayName": "Nelson",
-    "description": "Nelson support for Visual Studio Code",
-    "version": "2.1.0",
-    "publisher": "Nelson-numerical-software",
-    "license": "GPL-2.0",
-    "engines": {
-        "vscode": "^1.30.0"
-    },
-    "categories": [
-        "Programming Languages",
-        "Snippets"
+  "name": "nelson",
+  "displayName": "Nelson",
+  "description": "Edit Nelson code with syntax highlighting, snippets, auto completion and more.",
+  "version": "3.0.0",
+  "license": "GPL-2.0",
+  "publisher": "Nelson-numerical-software",
+  "author": {
+    "name": "Allan CORNET (Nelson-numerical-software)"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nelson-lang/nelson-vscode"
+  },
+  "homepage": "https://github.com/nelson-lang/nelson-vscode#README.md",
+  "bugs": "https://github.com/nelson-lang/nelson-vscode/issues",
+  "icon": "images/nelson.png",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "scripts": {
+    "prettier": "prettier --write **/*.{js,md,json}",
+    "package": "vsce package"
+  },
+  "activationEvents": [
+    "onLanguage:nelson"
+  ],
+  "main": "./src/extension.js",
+  "type": "commonjs",
+  "categories": [
+    "Programming Languages",
+    "Data Science",
+    "Snippets",
+    "Education"
+  ],
+  "keywords": [
+    "Nelson language",
+    "keybindings",
+    "linter",
+    "snippet"
+  ],
+  "devDependencies": {
+    "@types/vscode": "^1.96.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.0.0"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "nelson",
+        "aliases": [
+          "Nelson",
+          "nelson"
+        ],
+        "extensions": [
+          ".m"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "images/nelson.png",
+          "dark": "images/nelson.png"
+        }
+      }
     ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Nelson-numerical-software/nelson-vscode"
-    },
-    "icon": "images/nelson.png",
-    "bugs": "https://github.com/Nelson-numerical-software/nelson-vscode/issues",
-    "contributes": {
-        "languages": [
-            {
-                "id": "nelson",
-                "aliases": [
-                    "Nelson",
-                    "nelson"
-                ],
-                "extensions": [
-                    ".m",
-                    ".nlf",
-                    ".nls"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "nelson",
-                "scopeName": "source.nelson",
-                "path": "./syntaxes/nelson.tmLanguage"
-            }
-        ],
-        "snippets": [
-            {
-                "language": "nelson",
-                "path": "./snippets/nelson.json"
-            }
-        ]
+    "grammars": [
+      {
+        "language": "nelson",
+        "scopeName": "source.nelson",
+        "path": "./syntaxes/nelson.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "nelson",
+        "path": "./snippets/nelson.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "nelson.newFileDocument",
+        "title": "Nelson: New Document",
+        "shortTitle": "Nelson File"
+      }
+    ],
+    "menus": {
+      "file/newFile": [
+        {
+          "command": "nelson.newFileDocument",
+          "group": "nelson"
+        }
+      ]
     }
+  }
 }

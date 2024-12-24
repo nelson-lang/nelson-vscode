@@ -16,22 +16,34 @@
 % along with this program.  If not, see <http:%www.gnu.org/licenses/>.
 % LICENCE_BLOCK_END
 %==============================================================================
+[current_path, f, e] = fileparts(nfilename('fullpathext'));
+src = [current_path, '/nelson.tmLanguage.json.in'];
+dst = [current_path, '/nelson.tmLanguage.json'];
+content = fileread(src);
+jsonObject = jsondecode(content);
+%==============================================================================
 [list_builtin, list_macro] = what();
+%==============================================================================
 list_builtin = sort(list_builtin);
-list_macro = sort(list_macro);
+list_builtin(startsWith(list_builtin, '@')) = [];
+list_builtin(startsWith(list_builtin, '__')) = [];
 builtin_concat = sprintf('%s|',string(list_builtin));
 if endsWith(builtin_concat, '|')
   builtin_concat = builtin_concat(1:end-1);
 end
+%==============================================================================
+list_macro = sort(list_macro);
+list_macro(startsWith(list_macro, '@')) = [];
+list_macro(startsWith(list_macro, '__')) = [];
 macro_concat = sprintf('%s|',string(list_macro));
 if endsWith(macro_concat, '|')
   macro_concat = macro_concat(1:end-1);
 end
-[current_path, f, e] = fileparts(nfilename('fullpathext'));
-src = [current_path, '/nelson.tmLanguage.in'];
-dst = [current_path, '/nelson.tmLanguage'];
+%==============================================================================
 content = fileread(src);
 content = replace(content, '__MACROS__', macro_concat);
-content = replace(content, '__BUILTIN__', builtin_concat);
+content = replace(content, '__BUILTINS__', builtin_concat);
 filewrite(dst, content);
+%==============================================================================
+disp('nelson.tmLanguage generated.');
 %==============================================================================
