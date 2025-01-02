@@ -2,7 +2,7 @@
   "name": "nelson",
   "displayName": "Nelson",
   "description": "Edit Nelson code with syntax highlighting, snippets, auto completion and more.",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "license": "GPL-2.0",
   "publisher": "Nelson-numerical-software",
   "author": {
@@ -23,7 +23,8 @@
     "package": "vsce package"
   },
   "activationEvents": [
-    "onLanguage:nelson"
+    "onLanguage:nelson",
+    "onCommand:nelson.createCustomTerminal"
   ],
   "main": "./src/extension.js",
   "type": "commonjs",
@@ -83,8 +84,20 @@
         "command": "nelson.newFileDocument",
         "title": "Nelson: New Document",
         "shortTitle": "Nelson File"
+      },
+      {
+        "command": "nelson.createCustomTerminal",
+        "title": "Nelson REPL"
       }
     ],
+    "terminal": {
+      "profiles": [
+        {
+          "id": "nelson.customTerminal",
+          "title": "Nelson REPL"
+        }
+      ]
+    },
     "menus": {
       "file/newFile": [
         {

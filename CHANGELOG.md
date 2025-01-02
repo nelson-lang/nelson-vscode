@@ -4,6 +4,13 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.1.0] - 2025-01-02
+
+### Added
+
+- Terminal profile with Nelson instance.
+  Nelson executable path must be in your PATH environment variable.
+
 ## [3.0.0] - 2024-12-24
 
 ### Added

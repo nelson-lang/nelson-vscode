@@ -21,9 +21,6 @@
       "include": "#keywords"
     },
     {
-      "include": "#macros"
-    },
-    {
       "include": "#builtins"
     },
     {
@@ -102,22 +99,6 @@
         {
           "match": "\\b(and|break|else|elseif|end|false|for|if|not|or|function|return|true|while|switch|continue|case|otherwise|which|varargin|varargout|classdef|methods|properties)\\b",
           "name": "keyword.control.nelson"
-        }
-      ]
-    },
-    "functions": {
-      "patterns": [
-        {
-          "match": "\\b(function)\\s+(?:[^=]*\\s*=\\s*)?(\\w+){1}",
-          "captures": {
-            "1": {
-              "name": "keyword.control.nelson"
-            },
-            "2": {
-              "name": "entity.name.function.nelson"
-            }
-          },
-          "name": "meta.function.nelson"
         }
       ]
     },

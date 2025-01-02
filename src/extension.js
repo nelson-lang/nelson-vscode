@@ -74,8 +74,34 @@ function activate(context) {
     languageCommands.newFileDocument,
   );
 
+  const terminalProfileProvider = vscode.window.registerTerminalProfileProvider(
+    "nelson.customTerminal",
+    {
+      provideTerminalProfile() {
+        const isWindows = process.platform === "win32";
+
+        return {
+          shellPath: isWindows ? "nelson.bat" : "nelson",
+          shellArgs: ["-adv-cli"],
+          name: "Nelson REPL",
+        };
+      },
+    },
+  );
+  let createTerminalCommand = vscode.commands.registerCommand(
+    "nelson.createCustomTerminal",
+    () => {
+      const terminal = vscode.window.createTerminal({
+        name: "Nelson REPL",
+        profileName: "nelson.customTerminal",
+      });
+      terminal.show();
+    },
+  );
+
   context.subscriptions.push(nelsonCompletionProvider);
   context.subscriptions.push(nelsonNewFileDocumentProvider);
+  context.subscriptions.push(terminalProfileProvider, createTerminalCommand);
 }
 //=============================================================================
 function deactivate() {}

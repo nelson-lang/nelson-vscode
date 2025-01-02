@@ -2,4 +2,6 @@
 .vscode-test/**
 .gitignore
 vsc-extension-quickstart.md
-/syntax/generate_nelson_tmLanguage.m
+syntaxes/generate_nelson_tmLanguage.m
+syntaxes/nelson.tmLanguage.json.in
+.nvmrc
