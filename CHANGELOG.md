@@ -4,6 +4,12 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.2.1] - 2025-01-12
+
+### Changed
+
+- node dependencies regenerated/updated.
+
 ## [3.2.0] - 2025-01-12
 
 ### Added
