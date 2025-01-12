@@ -5,3 +5,5 @@ vsc-extension-quickstart.md
 syntaxes/generate_nelson_tmLanguage.m
 syntaxes/nelson.tmLanguage.json.in
 .nvmrc
+src
+node_modules

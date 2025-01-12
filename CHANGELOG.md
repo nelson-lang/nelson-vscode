@@ -6,9 +6,13 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [3.2.0] - 2025-01-12
 
+### Added
+
+- The NELSON_RUNTIME_PATH environment variable is now used to invoke Nelson. No additional configuration is required on Windows with version 1.11.0
+- Package bundle included.
+
 ### Changed
 
-- use environment variable `NELSON_RUNTIME_PATH` to invoke Nelson
 - Keywords (macro, builtin) updated for 1.11.0 version.
 
 ## [3.1.0] - 2025-01-02

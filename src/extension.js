@@ -17,7 +17,6 @@
 // LICENCE_BLOCK_END
 //=============================================================================
 const vscode = require("vscode");
-const fs = require("fs");
 const path = require("path");
 const languageCommands = require("./languageCommands");
 const NelsonCompletionProvider = require("./completionProvider");

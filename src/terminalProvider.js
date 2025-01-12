@@ -18,6 +18,7 @@
 //=============================================================================
 const vscode = require("vscode");
 const path = require("path");
+const fs = require("fs");
 //=============================================================================
 class NelsonTerminalProvider {
   constructor() {
@@ -29,10 +30,10 @@ class NelsonTerminalProvider {
     const runtimePath = process.env.NELSON_RUNTIME_PATH || "";
     const isWindows = process.platform === "win32";
     const executableName = isWindows ? "nelson.bat" : "nelson";
-
-    return runtimePath
-      ? path.join(runtimePath, executableName)
-      : executableName;
+    if (runtimePath && fs.existsSync(runtimePath)) {
+      return path.join(runtimePath, executableName);
+    }
+    return executableName;
   }
 
   registerTerminalProvider() {

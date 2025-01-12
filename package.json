@@ -19,14 +19,15 @@
     "vscode": "^1.96.0"
   },
   "scripts": {
+    "compile": "node esbuild.js",
     "prettier": "prettier --write **/*.{js,md,json}",
-    "package": "vsce package"
+    "package": "node esbuild.js --production && vsce package"
   },
   "activationEvents": [
     "onLanguage:nelson",
     "onCommand:nelson.createCustomTerminal"
   ],
-  "main": "./src/extension.js",
+  "main": "./dist/extension.js",
   "type": "commonjs",
   "categories": [
     "Programming Languages",
@@ -42,6 +43,7 @@
   ],
   "devDependencies": {
     "@types/vscode": "^1.96.0",
+    "esbuild": "^0.24.2",
     "prettier": "^3.4.2",
     "typescript": "^5.2.2"
   },
