@@ -30,7 +30,7 @@ More information about [Nelson](https://github.com/Nelson-lang/nelson).
 
   ![Nelson REPL](./images/Terminal-REPL.png)
 
-  Ensure the path to the Nelson executable is included in the PATH environment variable (on Windows, for example `C:\Programs files\Nelson-1.10.0.4516\bin\x64`).
+  Make sure the path to the Nelson executable is added to either the PATH environment variable or the NELSON_RUNTIME_PATH environment variable. On Windows, starting with version 1.11, NELSON_RUNTIME_PATH is automatically configured during installation.
 
 ## Known Issues 🐞
 

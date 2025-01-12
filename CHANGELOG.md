@@ -4,6 +4,13 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.2.0] - 2025-01-12
+
+### Changed
+
+- use environment variable `NELSON_RUNTIME_PATH` to invoke Nelson
+- Keywords (macro, builtin) updated for 1.11.0 version.
+
 ## [3.1.0] - 2025-01-02
 
 ### Added

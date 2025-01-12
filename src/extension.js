@@ -20,52 +20,14 @@ const vscode = require("vscode");
 const fs = require("fs");
 const path = require("path");
 const languageCommands = require("./languageCommands");
+const NelsonCompletionProvider = require("./completionProvider");
+const NelsonTerminalProvider = require("./terminalProvider");
 //=============================================================================
 function activate(context) {
   const nelsonCompletionProvider =
     vscode.languages.registerCompletionItemProvider(
       { language: "nelson", scheme: "file" },
-      {
-        provideCompletionItems(document, position, token, context) {
-          const completions = [];
-
-          const tmLanguagePath = path.join(
-            __dirname,
-            "../syntaxes/nelson.tmLanguage.json",
-          );
-          const tmLanguage = JSON.parse(
-            fs.readFileSync(tmLanguagePath, "utf8"),
-          );
-
-          const builtinFunctions =
-            tmLanguage.repository.builtins.patterns[0].match.match(/\b\w+\b/g);
-          builtinFunctions.forEach((func) => {
-            const completionItem = new vscode.CompletionItem(
-              func,
-              vscode.CompletionItemKind.Function,
-            );
-            completionItem.label = func + " (Builtin)";
-            completionItem.insertText = new vscode.SnippetString(`${func}`);
-            completionItem.sortText = "entity.name.function.nelson";
-            completions.push(completionItem);
-          });
-
-          const macroFunctions =
-            tmLanguage.repository.macros.patterns[0].match.match(/\b\w+\b/g);
-          macroFunctions.forEach((func) => {
-            const completionItem = new vscode.CompletionItem(
-              func,
-              vscode.CompletionItemKind.Function,
-            );
-            completionItem.label = func + " (Macro)";
-            completionItem.insertText = new vscode.SnippetString(`${func}`);
-            completionItem.sortText = "entity.name.function.nelson";
-            completions.push(completionItem);
-          });
-
-          return completions;
-        },
-      },
+      new NelsonCompletionProvider(),
       ".",
     );
 
@@ -74,34 +36,14 @@ function activate(context) {
     languageCommands.newFileDocument,
   );
 
-  const terminalProfileProvider = vscode.window.registerTerminalProfileProvider(
-    "nelson.customTerminal",
-    {
-      provideTerminalProfile() {
-        const isWindows = process.platform === "win32";
+  const terminalProvider = new NelsonTerminalProvider();
+  const terminalSubscriptions = terminalProvider.registerTerminalProvider();
 
-        return {
-          shellPath: isWindows ? "nelson.bat" : "nelson",
-          shellArgs: ["-adv-cli"],
-          name: "Nelson REPL",
-        };
-      },
-    },
+  context.subscriptions.push(
+    nelsonCompletionProvider,
+    nelsonNewFileDocumentProvider,
+    ...terminalSubscriptions,
   );
-  let createTerminalCommand = vscode.commands.registerCommand(
-    "nelson.createCustomTerminal",
-    () => {
-      const terminal = vscode.window.createTerminal({
-        name: "Nelson REPL",
-        profileName: "nelson.customTerminal",
-      });
-      terminal.show();
-    },
-  );
-
-  context.subscriptions.push(nelsonCompletionProvider);
-  context.subscriptions.push(nelsonNewFileDocumentProvider);
-  context.subscriptions.push(terminalProfileProvider, createTerminalCommand);
 }
 //=============================================================================
 function deactivate() {}
