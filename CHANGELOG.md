@@ -10,6 +10,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - new keyword of Nelson v1.15.0
 - `nelson.runtimePath` setting to point VS Code directly at the Nelson executable.
+- unit tests and CI
 
 ### Changed
 

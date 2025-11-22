@@ -69,7 +69,9 @@ class NelsonCompletionProvider {
       return [];
     }
 
-    const linePrefix = document.lineAt(position).text.slice(0, position.character);
+    const linePrefix = document
+      .lineAt(position)
+      .text.slice(0, position.character);
     const prefixMatch = linePrefix.match(/\b\w+$/);
     const prefix = prefixMatch ? prefixMatch[0].toLowerCase() : "";
 

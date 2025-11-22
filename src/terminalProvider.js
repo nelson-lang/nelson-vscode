@@ -29,9 +29,8 @@ class NelsonTerminalProvider {
   resolveNelsonExecutable() {
     const isWindows = process.platform === "win32";
     const executableName = isWindows ? "nelson.bat" : "nelson";
-    const configurationPath = (vscode.workspace
-      .getConfiguration("nelson")
-      .get("runtimePath") || ""
+    const configurationPath = (
+      vscode.workspace.getConfiguration("nelson").get("runtimePath") || ""
     ).trim();
     const runtimePath = (process.env.NELSON_RUNTIME_PATH || "").trim();
 
