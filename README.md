@@ -17,7 +17,6 @@ More information about [Nelson](https://github.com/Nelson-lang/nelson).
 - Declarative language features:
 
   ![Auto-completion](./images/Code-completion.png)
-
   - Comments 💬
   - Brackets 🔧
   - Indentation rules 📏
@@ -30,7 +29,7 @@ More information about [Nelson](https://github.com/Nelson-lang/nelson).
 
   ![Nelson REPL](./images/Terminal-REPL.png)
 
-  Make sure the path to the Nelson executable is added to either the PATH environment variable or the NELSON_RUNTIME_PATH environment variable. On Windows, starting with version 1.11, NELSON_RUNTIME_PATH is automatically configured during installation.
+  Make sure the path to the Nelson executable is added to either the PATH environment variable or the NELSON_RUNTIME_PATH environment variable. You can also set the `nelson.runtimePath` setting inside VS Code to point directly to the executable. On Windows, starting with version 1.11, NELSON_RUNTIME_PATH is automatically configured during installation.
 
 ## Known Issues 🐞
 

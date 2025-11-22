@@ -4,6 +4,19 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.2.2] - 2025-11-22
+
+### Added
+
+- new keyword of Nelson v1.15.0
+- `nelson.runtimePath` setting to point VS Code directly at the Nelson executable.
+
+### Changed
+
+- Completion provider now caches Nelson grammar data and triggers on identifier characters for faster, more relevant suggestions.
+- Nelson terminal command validates the configured/runtime paths before launching and surfaces clearer error messages.
+- README documents the new runtime path configuration; `.prettierignore` prevents formatting generated assets; dependency list trimmed.
+
 ## [3.2.1] - 2025-01-12
 
 ### Changed

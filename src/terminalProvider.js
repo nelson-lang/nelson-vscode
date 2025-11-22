@@ -26,14 +26,71 @@ class NelsonTerminalProvider {
     this.createTerminalCommand = null;
   }
 
-  getNelsonPath() {
-    const runtimePath = process.env.NELSON_RUNTIME_PATH || "";
+  resolveNelsonExecutable() {
     const isWindows = process.platform === "win32";
     const executableName = isWindows ? "nelson.bat" : "nelson";
-    if (runtimePath && fs.existsSync(runtimePath)) {
-      return path.join(runtimePath, executableName);
+    const configurationPath = (vscode.workspace
+      .getConfiguration("nelson")
+      .get("runtimePath") || ""
+    ).trim();
+    const runtimePath = (process.env.NELSON_RUNTIME_PATH || "").trim();
+
+    const expandCandidates = (basePath) => {
+      if (!basePath) {
+        return [];
+      }
+
+      const normalizedPath = path.normalize(basePath);
+      const candidates = [normalizedPath];
+
+      const normalizedLower = normalizedPath.toLowerCase();
+      const executableLower = executableName.toLowerCase();
+
+      if (!normalizedLower.endsWith(executableLower)) {
+        candidates.push(path.join(normalizedPath, executableName));
+      }
+
+      return candidates;
+    };
+
+    const findExisting = (candidates) => {
+      for (const candidate of candidates) {
+        try {
+          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+            return candidate;
+          }
+        } catch (error) {
+          // Ignore filesystem errors and continue testing the next candidate
+        }
+      }
+      return null;
+    };
+
+    if (configurationPath) {
+      const configuredExecutable = findExisting(
+        expandCandidates(configurationPath),
+      );
+      if (configuredExecutable) {
+        return { executable: configuredExecutable };
+      }
+
+      return {
+        error: `Unable to locate Nelson executable defined in settings: ${configurationPath}`,
+      };
     }
-    return executableName;
+
+    if (runtimePath) {
+      const runtimeExecutable = findExisting(expandCandidates(runtimePath));
+      if (runtimeExecutable) {
+        return { executable: runtimeExecutable };
+      }
+
+      return {
+        error: `Unable to locate Nelson executable defined in NELSON_RUNTIME_PATH: ${runtimePath}`,
+      };
+    }
+
+    return { executable: executableName };
   }
 
   registerTerminalProvider() {
@@ -41,10 +98,15 @@ class NelsonTerminalProvider {
       vscode.window.registerTerminalProfileProvider("nelson.customTerminal", {
         provideTerminalProfile: () => {
           try {
-            const shellPath = this.getNelsonPath();
+            const { executable, error } = this.resolveNelsonExecutable();
+
+            if (error) {
+              vscode.window.showErrorMessage(error);
+              return null;
+            }
 
             return {
-              shellPath,
+              shellPath: executable,
               shellArgs: ["-adv-cli"],
               name: "Nelson REPL",
               env: {
@@ -64,6 +126,13 @@ class NelsonTerminalProvider {
       "nelson.createCustomTerminal",
       () => {
         try {
+          const { error } = this.resolveNelsonExecutable();
+
+          if (error) {
+            vscode.window.showErrorMessage(error);
+            return;
+          }
+
           const terminal = vscode.window.createTerminal({
             name: "Nelson REPL",
             profileName: "nelson.customTerminal",
