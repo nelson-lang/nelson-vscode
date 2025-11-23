@@ -18,10 +18,14 @@ jest.mock("vscode", () => mockVscode, { virtual: true });
 
 describe("NelsonCompletionProvider", () => {
   let NelsonCompletionProvider;
+  let consoleErrorSpy;
 
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+
+    // Suppress console.error during tests
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     mockFs.readFileSync.mockReturnValue(
       JSON.stringify({
@@ -37,6 +41,10 @@ describe("NelsonCompletionProvider", () => {
     );
 
     NelsonCompletionProvider = require("./completionProvider");
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it("returns completion items for matching prefixes", () => {
@@ -98,5 +106,74 @@ describe("NelsonCompletionProvider", () => {
       "macroTwo",
       "macroBuiltin",
     ]);
+  });
+
+  it("handles syntax file loading errors gracefully", () => {
+    mockFs.readFileSync.mockImplementation(() => {
+      throw new Error("File not found");
+    });
+
+    const provider = new NelsonCompletionProvider();
+    const document = {
+      lineAt: () => ({ text: "macro" }),
+    };
+    const position = { character: 5 };
+    const token = { isCancellationRequested: false };
+
+    const items = provider.provideCompletionItems(document, position, token);
+
+    expect(items).toEqual([]);
+  });
+
+  it("filters completions based on prefix", () => {
+    const provider = new NelsonCompletionProvider();
+    const document = {
+      lineAt: () => ({ text: "builtin" }),
+    };
+    const position = { character: 7 };
+    const token = { isCancellationRequested: false };
+
+    const items = provider.provideCompletionItems(document, position, token);
+
+    expect(items.map((item) => item.label)).toEqual(["builtinTwo"]);
+  });
+
+  it("returns all items when prefix matches multiple completions", () => {
+    const provider = new NelsonCompletionProvider();
+    const document = {
+      lineAt: () => ({ text: "macro" }),
+    };
+    const position = { character: 5 };
+    const token = { isCancellationRequested: false };
+
+    const items = provider.provideCompletionItems(document, position, token);
+
+    expect(items.map((item) => item.label)).toEqual([
+      "macroOne",
+      "macroTwo",
+      "macroBuiltin",
+    ]);
+  });
+
+  it("handles empty syntax file", () => {
+    mockFs.readFileSync.mockReturnValue(
+      JSON.stringify({
+        repository: {
+          macros: { patterns: [] },
+          builtins: { patterns: [] },
+        },
+      }),
+    );
+
+    const provider = new NelsonCompletionProvider();
+    const document = {
+      lineAt: () => ({ text: "test" }),
+    };
+    const position = { character: 4 };
+    const token = { isCancellationRequested: false };
+
+    const items = provider.provideCompletionItems(document, position, token);
+
+    expect(items).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@ const mockCommandDisposable = { dispose: jest.fn() };
 const mockTerminalDisposables = [
   { dispose: jest.fn() },
   { dispose: jest.fn() },
+  { dispose: jest.fn() },
 ];
 
 const mockVscode = {
@@ -85,5 +86,34 @@ describe("extension activate", () => {
 
   it("exposes a deactivate function", () => {
     expect(() => extension.deactivate()).not.toThrow();
+  });
+
+  it("registers all required disposables", () => {
+    extension.activate(context);
+
+    expect(context.subscriptions.push).toHaveBeenCalledTimes(1);
+    const pushArgs = context.subscriptions.push.mock.calls[0];
+    expect(pushArgs).toHaveLength(5); // 1 completion + 1 command + 3 terminal
+  });
+
+  it("creates completion provider with correct trigger characters", () => {
+    extension.activate(context);
+
+    const completionArgs =
+      mockVscode.languages.registerCompletionItemProvider.mock.calls[0];
+    const triggerChars = completionArgs.slice(2);
+
+    expect(triggerChars).toContain(".");
+    expect(triggerChars).toContain("(");
+    expect(triggerChars).toContain("_");
+    expect(triggerChars.filter((c) => /[a-z]/.test(c))).toHaveLength(26);
+    expect(triggerChars.filter((c) => /[A-Z]/.test(c))).toHaveLength(26);
+  });
+
+  it("initializes terminal provider correctly", () => {
+    extension.activate(context);
+
+    expect(mockTerminalProvider).toHaveBeenCalled();
+    expect(mockTerminalProviderInstance.registerTerminalProvider).toHaveBeenCalled();
   });
 });

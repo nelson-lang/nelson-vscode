@@ -2,7 +2,7 @@
   "name": "nelson",
   "displayName": "Nelson",
   "description": "Edit Nelson code with syntax highlighting, snippets, auto completion and more.",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "license": "GPL-2.0",
   "publisher": "Nelson-numerical-software",
   "author": {
@@ -85,6 +85,11 @@
       {
         "command": "nelson.createCustomTerminal",
         "title": "Nelson REPL"
+      },
+      {
+        "command": "nelson.runActiveFile",
+        "title": "Nelson: Run Active File",
+        "icon": "$(play)"
       }
     ],
     "configuration": {
@@ -110,6 +115,13 @@
         {
           "command": "nelson.newFileDocument",
           "group": "nelson"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "nelson.runActiveFile",
+          "when": "resourceExtname == .m",
+          "group": "navigation"
         }
       ]
     }
