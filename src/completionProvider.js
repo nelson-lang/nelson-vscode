@@ -20,75 +20,85 @@ const vscode = require("vscode");
 const fs = require("fs");
 const path = require("path");
 //=============================================================================
+const tmLanguagePath = path.join(
+  __dirname,
+  "../syntaxes/nelson.tmLanguage.json",
+);
+
+let functionCache = null;
+
+try {
+  fs.watch(tmLanguagePath, { persistent: false }, () => {
+    functionCache = null;
+  });
+} catch (error) {
+  console.error("Unable to watch Nelson grammar for changes:", error);
+}
+
+function parseFunctionList(section = {}) {
+  const pattern = section.patterns?.[0]?.match;
+  if (!pattern || typeof pattern !== "string") {
+    return [];
+  }
+  return pattern.match(/\b\w+\b/g) || [];
+}
+
+function loadFunctionCache() {
+  try {
+    const tmLanguage = JSON.parse(fs.readFileSync(tmLanguagePath, "utf8"));
+    functionCache = {
+      builtin: parseFunctionList(tmLanguage.repository?.builtins),
+      macro: parseFunctionList(tmLanguage.repository?.macros),
+    };
+  } catch (error) {
+    console.error("Error loading Nelson grammar for completions:", error);
+    functionCache = { builtin: [], macro: [] };
+  }
+}
+
+function ensureFunctionCache() {
+  if (!functionCache) {
+    loadFunctionCache();
+  }
+  return functionCache;
+}
+//=============================================================================
 class NelsonCompletionProvider {
-  provideCompletionItems(document, position, token, context) {
+  provideCompletionItems(document, position, token) {
+    if (token.isCancellationRequested) {
+      return [];
+    }
+
+    const linePrefix = document
+      .lineAt(position)
+      .text.slice(0, position.character);
+    const prefixMatch = linePrefix.match(/\b\w+$/);
+    const prefix = prefixMatch ? prefixMatch[0].toLowerCase() : "";
+
+    if (!prefix) {
+      return [];
+    }
+
+    const { builtin, macro } = ensureFunctionCache();
     const completions = [];
-    try {
-      // Check if the request has been canceled
-      if (token.isCancellationRequested) {
-        return [];
-      }
 
-      // Load language definition
-      const tmLanguagePath = path.join(
-        __dirname,
-        "../syntaxes/nelson.tmLanguage.json",
-      );
-      const tmLanguage = JSON.parse(fs.readFileSync(tmLanguagePath, "utf8"));
-
-      // Get the text up to the cursor position
-      const linePrefix = document
-        .lineAt(position)
-        .text.substr(0, position.character);
-
-      // Match the last word the user is typing
-      const prefixMatch = linePrefix.match(/\b\w+$/);
-      const prefix = prefixMatch ? prefixMatch[0].toLowerCase() : "";
-
-      // Return no completions if no prefix is detected
-      if (!prefix) {
-        return [];
-      }
-
-      // Filter functions to match the prefix
-      const filterFunctions = (functions, type) => {
-        const filteredFuncs = functions.filter((func) =>
-          func.toLowerCase().startsWith(prefix),
-        );
-
-        filteredFuncs.forEach((func) => {
+    const pushMatches = (symbols, type, sortPrefix) => {
+      symbols
+        .filter((symbol) => symbol.toLowerCase().startsWith(prefix))
+        .forEach((symbol) => {
           const completionItem = new vscode.CompletionItem(
-            func,
+            symbol,
             vscode.CompletionItemKind.Function,
           );
-          completionItem.label = func;
           completionItem.detail = `${type} function in Nelson`;
-          completionItem.insertText = new vscode.SnippetString(`${func}($1)`);
-          // Adjust sort order: Builtin functions appear after Macro functions
-          completionItem.sortText = `${type === "Builtin" ? "2" : "1"}_${func.toLowerCase()}`;
+          completionItem.sortText = `${sortPrefix}_${symbol.toLowerCase()}`;
           completions.push(completionItem);
         });
-      };
+    };
 
-      // Extract and filter built-in functions
-      const builtinFunctions = (
-        tmLanguage.repository?.builtins?.patterns[0]?.match.match(/\b\w+\b/g) ||
-        []
-      ).filter((func) => func && typeof func === "string");
-      filterFunctions(builtinFunctions, "Builtin");
+    pushMatches(macro, "Macro", "1");
+    pushMatches(builtin, "Builtin", "2");
 
-      // Extract and filter macro functions
-      const macroFunctions = (
-        tmLanguage.repository?.macros?.patterns[0]?.match.match(/\b\w+\b/g) ||
-        []
-      ).filter((func) => func && typeof func === "string");
-      filterFunctions(macroFunctions, "Macro");
-
-      // Sort completions by priority and alphabetically
-      completions.sort((a, b) => a.sortText.localeCompare(b.sortText));
-    } catch (error) {
-      console.error("Error providing completions:", error);
-    }
     return completions;
   }
 }

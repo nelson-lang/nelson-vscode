@@ -4,6 +4,32 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.3.0] - 2025-11-23
+
+### Added
+
+- "Run Active File" button for `.m` files - executes the active file in Nelson REPL terminal 
+  - Automatically starts Nelson REPL if not running
+  - Character-by-character sending to avoid terminal paste buffer issues with long paths
+  - Version check: Requires Nelson >= 1.16.0
+- New keywords for Nelson v1.15.0
+- `nelson.runtimePath` setting to point VS Code directly at the Nelson executable
+- Comprehensive unit tests with 35 passing tests covering all features
+- CI integration
+
+### Changed
+
+- Completion provider now caches Nelson grammar data and triggers on identifier characters for faster, more relevant suggestions
+- Nelson terminal command validates the configured/runtime paths before launching and surfaces clearer error messages
+- `.prettierignore` prevents formatting generated assets
+- Dependency list trimmed
+- Terminal shell integration disabled for Nelson REPL to prevent input echo issues
+
+### Fixed
+
+- Long file paths in terminal commands no longer cause character duplication
+- Terminal prompt handling improved with proper delays and command execution
+
 ## [3.2.1] - 2025-01-12
 
 ### Changed

@@ -22,12 +22,20 @@ const languageCommands = require("./languageCommands");
 const NelsonCompletionProvider = require("./completionProvider");
 const NelsonTerminalProvider = require("./terminalProvider");
 //=============================================================================
+const COMPLETION_TRIGGER_CHARACTERS = [
+  ".",
+  "(",
+  ..."abcdefghijklmnopqrstuvwxyz".split(""),
+  ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+  "_",
+];
+//=============================================================================
 function activate(context) {
   const nelsonCompletionProvider =
     vscode.languages.registerCompletionItemProvider(
       { language: "nelson", scheme: "file" },
       new NelsonCompletionProvider(),
-      ".",
+      ...COMPLETION_TRIGGER_CHARACTERS,
     );
 
   const nelsonNewFileDocumentProvider = vscode.commands.registerCommand(

@@ -2,7 +2,7 @@
   "name": "nelson",
   "displayName": "Nelson",
   "description": "Edit Nelson code with syntax highlighting, snippets, auto completion and more.",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "license": "GPL-2.0",
   "publisher": "Nelson-numerical-software",
   "author": {
@@ -16,17 +16,14 @@
   "bugs": "https://github.com/nelson-lang/nelson-vscode/issues",
   "icon": "images/nelson.png",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.106.0"
   },
   "scripts": {
     "compile": "node esbuild.js",
     "prettier": "prettier --write **/*.{js,md,json}",
-    "package": "node esbuild.js --production && vsce package"
+    "package": "node esbuild.js --production && vsce package",
+    "test": "jest"
   },
-  "activationEvents": [
-    "onLanguage:nelson",
-    "onCommand:nelson.createCustomTerminal"
-  ],
   "main": "./dist/extension.js",
   "type": "commonjs",
   "categories": [
@@ -42,13 +39,11 @@
     "snippet"
   ],
   "devDependencies": {
-    "@types/vscode": "^1.96.0",
-    "esbuild": "^0.25.0",
-    "prettier": "^3.4.2",
-    "typescript": "^5.2.2"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^8.0.0"
+    "@types/vscode": "^1.106.1",
+    "esbuild": "^0.27.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
   },
   "contributes": {
     "languages": [
@@ -90,8 +85,23 @@
       {
         "command": "nelson.createCustomTerminal",
         "title": "Nelson REPL"
+      },
+      {
+        "command": "nelson.runActiveFile",
+        "title": "Nelson: Run Active File",
+        "icon": "$(play)"
       }
     ],
+    "configuration": {
+      "title": "Nelson",
+      "properties": {
+        "nelson.runtimePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Nelson executable. Leave empty to use NELSON_RUNTIME_PATH or rely on the system PATH."
+        }
+      }
+    },
     "terminal": {
       "profiles": [
         {
@@ -105,6 +115,13 @@
         {
           "command": "nelson.newFileDocument",
           "group": "nelson"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "nelson.runActiveFile",
+          "when": "resourceExtname == .m",
+          "group": "navigation"
         }
       ]
     }
