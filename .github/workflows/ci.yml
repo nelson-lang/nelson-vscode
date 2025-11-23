@@ -1,31 +1,43 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
+      - master
       - main
-      - dev-3.2.2
   pull_request:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build extension
         run: npm run compile
 
       - name: Run tests
         run: npm test
+
+      - name: Package extension
+        run: npx @vscode/vsce package
