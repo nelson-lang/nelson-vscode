@@ -16,7 +16,7 @@
   "bugs": "https://github.com/nelson-lang/nelson-vscode/issues",
   "icon": "images/nelson.png",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.106.0"
   },
   "scripts": {
     "compile": "node esbuild.js",
