@@ -33,14 +33,17 @@ class NelsonTerminalProvider {
 
   getNelsonVersion(executable) {
     try {
-      // Try to get version by running nelson with --version flag
       const output = execSync(`"${executable}" -cli --version`, {
         encoding: "utf8",
         timeout: 5000,
       });
-      
-      // Parse version from output (e.g., "1.16.0.1234")
+
+      // Match the first three version numbers and ignore any additional segments
+      // Examples:
+      // "1.16.0"
+      // "1.16.0.1234"
       const versionMatch = output.match(/(\d+)\.(\d+)\.(\d+)/);
+
       if (versionMatch) {
         return {
           major: parseInt(versionMatch[1]),
@@ -48,9 +51,10 @@ class NelsonTerminalProvider {
           patch: parseInt(versionMatch[3]),
         };
       }
-    } catch (error) {
-      // If version check fails, return null
+    } catch (_) {
+      // Ignore and return null
     }
+
     return null;
   }
 

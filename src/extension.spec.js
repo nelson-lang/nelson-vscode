@@ -114,6 +114,8 @@ describe("extension activate", () => {
     extension.activate(context);
 
     expect(mockTerminalProvider).toHaveBeenCalled();
-    expect(mockTerminalProviderInstance.registerTerminalProvider).toHaveBeenCalled();
+    expect(
+      mockTerminalProviderInstance.registerTerminalProvider,
+    ).toHaveBeenCalled();
   });
 });

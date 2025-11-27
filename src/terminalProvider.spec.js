@@ -34,7 +34,9 @@ describe("NelsonTerminalProvider", () => {
 
     // Suppress console output during tests
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    stderrWriteSpy = jest.spyOn(process.stderr, "write").mockImplementation(() => {});
+    stderrWriteSpy = jest
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => {});
 
     originalRuntimePath = process.env.NELSON_RUNTIME_PATH;
     configuration = {
