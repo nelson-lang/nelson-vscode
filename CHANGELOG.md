@@ -8,7 +8,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ### Added
 
-- "Run Active File" button for `.m` files - executes the active file in Nelson REPL terminal 
+- "Run Active File" button for `.m` files - executes the active file in Nelson REPL terminal
   - Automatically starts Nelson REPL if not running
   - Character-by-character sending to avoid terminal paste buffer issues with long paths
   - Version check: Requires Nelson >= 1.16.0
