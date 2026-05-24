@@ -381,19 +381,26 @@ class NelsonTerminalProvider {
         cancellable: false,
       },
       async () => {
-        const rawHelpOutput =
-          await NelsonCompletionProvider.loadNelsonHelpOutput(
-            executable,
-            symbol,
-          );
-        const helpText = NelsonCompletionProvider.normalizeHelpText(
+        const helpText = await NelsonCompletionProvider.loadNelsonHelpText(
+          executable,
           symbol,
-          rawHelpOutput,
         );
 
         output.appendLine(helpText || `No Nelson help found for "${symbol}".`);
       },
     );
+  }
+
+  createNelsonTerminalOptions(executable) {
+    return {
+      shellPath: executable,
+      shellArgs: ["-cli"],
+      name: NELSON_REPL_NAME,
+      env: {
+        NELSON_RUNTIME_PATH: process.env.NELSON_RUNTIME_PATH || "",
+        VSCODE_SHELL_INTEGRATION: "0",
+      },
+    };
   }
 
   registerTerminalProvider() {
@@ -408,15 +415,7 @@ class NelsonTerminalProvider {
               return null;
             }
 
-            return {
-              shellPath: executable,
-              shellArgs: ["-cli"],
-              name: NELSON_REPL_NAME,
-              env: {
-                NELSON_RUNTIME_PATH: process.env.NELSON_RUNTIME_PATH || "",
-                VSCODE_SHELL_INTEGRATION: "0",
-              },
-            };
+            return this.createNelsonTerminalOptions(executable);
           } catch (error) {
             vscode.window.showErrorMessage(
               `Failed to create Nelson terminal: ${error.message}`,
@@ -430,17 +429,16 @@ class NelsonTerminalProvider {
       "nelson.createCustomTerminal",
       async () => {
         try {
-          const { error } = this.resolveNelsonExecutable();
+          const { executable, error } = this.resolveNelsonExecutable();
 
           if (error) {
             await this.showRuntimeResolutionError(error);
             return;
           }
 
-          const terminal = vscode.window.createTerminal({
-            name: NELSON_REPL_NAME,
-            profileName: "nelson.customTerminal",
-          });
+          const terminal = vscode.window.createTerminal(
+            this.createNelsonTerminalOptions(executable),
+          );
           this.nelsonTerminal = terminal;
           terminal.show();
         } catch (error) {

@@ -1,9 +1,12 @@
 const mockFs = {
   watch: jest.fn(() => ({ close: jest.fn() })),
   readFileSync: jest.fn(),
+  existsSync: jest.fn(() => false),
+  statSync: jest.fn(() => ({ isFile: () => true })),
 };
 const mockChildProcess = {
-  exec: jest.fn(),
+  execFile: jest.fn(),
+  spawn: jest.fn(() => ({ on: jest.fn(), unref: jest.fn() })),
 };
 
 const mockVscode = {
@@ -31,6 +34,13 @@ describe("NelsonCompletionProvider", () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    mockFs.existsSync.mockReturnValue(false);
+    mockFs.statSync.mockReturnValue({ isFile: () => true });
+    mockChildProcess.execFile.mockImplementation(
+      (command, args, options, callback) => {
+        callback(null, '"/opt/nelson/modules/help_tools"\n', "");
+      },
+    );
 
     // Suppress console.error during tests
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -74,8 +84,8 @@ describe("NelsonCompletionProvider", () => {
     expect(labels).toEqual(["macroOne", "macroTwo", "macroBuiltin"]);
     expect(items.every((item) => item.kind === "Function")).toBe(true);
     expect(items[0].detail).toBe("Macro function in Nelson");
-    expect(items[0].documentation.value).toContain("Loading Nelson help");
-    expect(items[0].nelsonHelpPending).toBe(true);
+    expect(items[0].documentation).toBeUndefined();
+    expect(items[0].nelsonHelpPending).toBe(false);
   });
 
   it("labels debugger command completions clearly", async () => {
@@ -255,6 +265,31 @@ describe("NelsonCompletionProvider", () => {
     expect(resolved.nelsonHelpPending).toBe(false);
   });
 
+  it("clears the loading placeholder when no help can be resolved", async () => {
+    const provider = new NelsonCompletionProvider({
+      resolveNelsonExecutable: () => ({ executable: "nelson" }),
+      loadHelpText: jest.fn().mockResolvedValue(null),
+    });
+    const token = { isCancellationRequested: false };
+    const item = new mockVscode.CompletionItem(
+      "unknown",
+      mockVscode.CompletionItemKind.Function,
+    );
+    item.detail = "Macro function in Nelson";
+    item.documentation = new mockVscode.MarkdownString(
+      "**unknown**\n\nLoading Nelson help...",
+    );
+    item.nelsonSymbol = "unknown";
+    item.nelsonItemType = "Macro function";
+    item.nelsonHelpPending = true;
+
+    const resolved = await provider.resolveCompletionItem(item, token);
+
+    expect(resolved.detail).toBe("Macro function in Nelson");
+    expect(resolved.documentation).toBeUndefined();
+    expect(resolved.nelsonHelpPending).toBe(false);
+  });
+
   it("does not show local help when Nelson help is unavailable", async () => {
     mockFs.readFileSync.mockReturnValue(
       JSON.stringify({
@@ -287,17 +322,138 @@ describe("NelsonCompletionProvider", () => {
 
     expect(items[0].label).toBe("unknownMacro");
     expect(items[0].detail).toBe("Macro function in Nelson");
-    expect(items[0].documentation.value).toContain("Loading Nelson help");
+    expect(items[0].documentation).toBeUndefined();
+    expect(items[0].nelsonHelpPending).toBe(false);
   });
 
-  it("normalizes JSON encoded Nelson help output", () => {
-    const output =
-      '" cos - Computes the cosine in radians for each element of x.\\n\\n   Syntax: \\n      res = cos(x)\\n"';
-
-    const helpText = NelsonCompletionProvider.normalizeHelpText("cos", output);
+  it("formats help text from Nelson JSON entries", () => {
+    const helpText = NelsonCompletionProvider.formatNelsonJsonHelpEntry("cos", {
+      keyword: "cos",
+      short_description:
+        "Computes the cosine in radians for each element of x.",
+      syntax: ["res = cos(x)"],
+      input_arguments: { name: "x", description: "a numeric value" },
+      output_arguments: { name: "res", description: "a numeric value" },
+      see_also: ["acos"],
+    });
 
     expect(helpText).toContain("cos - Computes the cosine");
     expect(helpText).toContain("res = cos(x)");
+    expect(helpText).toContain("x: a numeric value");
+    expect(helpText).toContain("See also: acos");
+  });
+
+  it("loads help from the Nelson JSON help index path returned by Nelson", async () => {
+    const grammarJson = JSON.stringify({
+      repository: {
+        macros: { patterns: [] },
+        builtins: { patterns: [{ match: "cos" }] },
+      },
+    });
+    const helpJson = JSON.stringify({
+      cos: {
+        keyword: "cos",
+        short_description:
+          "Computes the cosine in radians for each element of x.",
+      },
+    });
+    mockFs.existsSync.mockImplementation((filePath) => {
+      return String(filePath).endsWith("nelson_help_en_US.json");
+    });
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      return String(filePath).endsWith("nelson_help_en_US.json")
+        ? helpJson
+        : grammarJson;
+    });
+
+    const helpText = await NelsonCompletionProvider.loadNelsonHelpText(
+      "/opt/nelson/bin/nelson",
+      "cos",
+    );
+
+    expect(helpText).toContain("cos - Computes the cosine");
+    const [command, args, options, callback] =
+      mockChildProcess.execFile.mock.calls[0];
+    expect(command).toEqual(expect.any(String));
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "-adv-cli",
+        "--quiet",
+        "-e",
+        "disp(jsonencode(modulepath('help_tools'))),quit",
+      ]),
+    );
+    expect(options).toEqual(expect.objectContaining({ windowsHide: true }));
+    expect(callback).toEqual(expect.any(Function));
+  });
+
+  it("falls back to a local help module path when Nelson cannot report modulepath", async () => {
+    const grammarJson = JSON.stringify({
+      repository: {
+        macros: { patterns: [] },
+        builtins: { patterns: [{ match: "cos" }] },
+      },
+    });
+    const helpJson = JSON.stringify({
+      cos: {
+        keyword: "cos",
+        short_description:
+          "Computes the cosine in radians for each element of x.",
+      },
+    });
+    mockChildProcess.execFile.mockImplementation(
+      (command, args, options, callback) => {
+        callback(new Error("Nelson unavailable"), "", "");
+      },
+    );
+    mockFs.existsSync.mockImplementation((filePath) => {
+      const normalized = String(filePath).replace(/\\/g, "/");
+      return (
+        normalized.endsWith("/nelson/bin/nelson") ||
+        normalized.endsWith("/nelson/modules/help_tools/help") ||
+        normalized.endsWith(
+          "/nelson/modules/help_tools/help/nelson_help_en_US.json",
+        )
+      );
+    });
+    mockFs.readFileSync.mockImplementation((filePath) => {
+      return String(filePath).endsWith("nelson_help_en_US.json")
+        ? helpJson
+        : grammarJson;
+    });
+
+    const helpText = await NelsonCompletionProvider.loadNelsonHelpText(
+      "/opt/nelson/bin/nelson",
+      "cos",
+    );
+
+    expect(helpText).toContain("cos - Computes the cosine");
+  });
+
+  it("terminates the Nelson modulepath process when it times out", async () => {
+    jest.useFakeTimers();
+    const child = {
+      pid: 12345,
+      kill: jest.fn(),
+    };
+    mockChildProcess.execFile.mockImplementation(() => child);
+
+    const helpPathPromise =
+      NelsonCompletionProvider.loadNelsonHelpModulePath("nelson");
+    jest.advanceTimersByTime(5000);
+    const helpPath = await helpPathPromise;
+
+    expect(helpPath).toBeNull();
+    if (process.platform === "win32") {
+      expect(mockChildProcess.spawn).toHaveBeenCalledWith(
+        "taskkill",
+        ["/pid", "12345", "/t", "/f"],
+        { windowsHide: true },
+      );
+    } else {
+      expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    }
+    jest.useRealTimers();
   });
 
   it("returns an empty array when the request is cancelled", async () => {

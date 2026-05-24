@@ -196,6 +196,34 @@ describe("NelsonTerminalProvider", () => {
     expect(registrations).toHaveLength(7);
   });
 
+  it("opens the Nelson REPL command with direct terminal options", async () => {
+    const executablePath = path.join(tempDir, "nelson");
+    const terminal = {
+      show: jest.fn(),
+    };
+    mockVscode.window.createTerminal.mockReturnValue(terminal);
+
+    const provider = new TerminalProvider();
+    jest
+      .spyOn(provider, "resolveNelsonExecutable")
+      .mockReturnValue({ executable: executablePath });
+    provider.registerTerminalProvider();
+
+    const createReplCall = mockVscode.commands.registerCommand.mock.calls.find(
+      ([command]) => command === "nelson.createCustomTerminal",
+    );
+    await createReplCall[1]();
+
+    expect(mockVscode.window.createTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Nelson REPL",
+        shellPath: executablePath,
+        shellArgs: ["-cli"],
+      }),
+    );
+    expect(terminal.show).toHaveBeenCalled();
+  });
+
   it("runs the active file workflow inside progress UI", async () => {
     const document = {
       fileName: path.join(tempDir, "script.m"),
@@ -288,9 +316,9 @@ describe("NelsonTerminalProvider", () => {
 
     const NelsonCompletionProvider = require("./completionProvider");
     jest
-      .spyOn(NelsonCompletionProvider, "loadNelsonHelpOutput")
+      .spyOn(NelsonCompletionProvider, "loadNelsonHelpText")
       .mockResolvedValue(
-        '" cos - Computes the cosine in radians for each element of x.\\n"',
+        "cos - Computes the cosine in radians for each element of x.",
       );
     const outputChannel = {
       clear: jest.fn(),
