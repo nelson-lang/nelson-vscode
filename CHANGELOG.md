@@ -4,6 +4,32 @@ All notable changes to the "nelson" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [3.4.0] - UNRELEASED
+
+### Added
+
+- MATLAB-style multiline comments with `%{` and `%}` in Nelson files.
+- Nelson 1.17.0 language support for `arguments ... end` blocks.
+- Completions and highlighting for new Nelson 1.17.0 functions and debugger commands.
+- Snippets for input, output, optional, and name-value argument validation blocks.
+- `Nelson: Select Runtime Path` command to configure the Nelson executable from a file picker.
+- `Nelson: Run Selection in REPL` command for sending highlighted code to the Nelson terminal.
+- `Nelson: Help` context menu command to show help for the symbol under the cursor.
+- Context menu entries for running Nelson files and opening the Nelson REPL.
+- Status bar entry for Nelson files with quick access to REPL and runtime setup actions.
+- Direct documentation links and short debugger descriptions in Nelson completion items.
+- Starter content for newly created Nelson documents.
+- Native VS Code walkthrough for first-run setup.
+- Explicit activation events for Nelson language and commands.
+
+### Changed
+
+- Dependencies updated.
+- CI and local development Node.js runtime updated to Node 24.
+- Renamed the REPL command to `Nelson: Open REPL` for clearer Command Palette discovery.
+- Runtime setup errors now offer actions to open settings, select the executable, or open documentation.
+- `Nelson: Run Active File` now shows progress while checking Nelson, saving files, and starting the REPL.
+
 ## [3.3.0] - 2025-11-23
 
 ### Added

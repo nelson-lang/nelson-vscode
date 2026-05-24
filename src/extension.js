@@ -17,7 +17,6 @@
 // LICENCE_BLOCK_END
 //=============================================================================
 const vscode = require("vscode");
-const path = require("path");
 const languageCommands = require("./languageCommands");
 const NelsonCompletionProvider = require("./completionProvider");
 const NelsonTerminalProvider = require("./terminalProvider");
@@ -29,12 +28,61 @@ const COMPLETION_TRIGGER_CHARACTERS = [
   ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
   "_",
 ];
+let activeCompletionProvider = null;
+//=============================================================================
+function isNelsonDocument(document) {
+  return document?.languageId === "nelson" || document?.fileName.endsWith(".m");
+}
+//=============================================================================
+function createNelsonStatusBarItem(context, terminalProvider) {
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100,
+  );
+  statusBarItem.command = "nelson.statusBarAction";
+
+  const updateStatusBar = () => {
+    const document = vscode.window.activeTextEditor?.document;
+    if (!isNelsonDocument(document)) {
+      statusBarItem.hide();
+      return;
+    }
+
+    const { executable, error } = terminalProvider.resolveNelsonExecutable();
+    statusBarItem.text = error
+      ? "$(warning) Nelson: setup"
+      : executable.includes("/") || executable.includes("\\")
+        ? "$(terminal) Nelson: configured"
+        : "$(terminal) Nelson: PATH";
+    statusBarItem.tooltip = error
+      ? `${error}\n\nClick to configure Nelson.`
+      : `Using Nelson runtime: ${executable}\n\nClick for Nelson actions.`;
+    statusBarItem.show();
+  };
+
+  context.subscriptions.push(
+    statusBarItem,
+    vscode.window.onDidChangeActiveTextEditor(updateStatusBar),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("nelson.runtimePath")) {
+        updateStatusBar();
+      }
+    }),
+  );
+
+  updateStatusBar();
+}
 //=============================================================================
 function activate(context) {
+  const terminalProvider = new NelsonTerminalProvider();
+  const completionProvider = new NelsonCompletionProvider({
+    resolveNelsonExecutable: () => terminalProvider.resolveNelsonExecutable(),
+  });
+  activeCompletionProvider = completionProvider;
   const nelsonCompletionProvider =
     vscode.languages.registerCompletionItemProvider(
       { language: "nelson", scheme: "file" },
-      new NelsonCompletionProvider(),
+      completionProvider,
       ...COMPLETION_TRIGGER_CHARACTERS,
     );
 
@@ -43,17 +91,21 @@ function activate(context) {
     languageCommands.newFileDocument,
   );
 
-  const terminalProvider = new NelsonTerminalProvider();
   const terminalSubscriptions = terminalProvider.registerTerminalProvider();
+  createNelsonStatusBarItem(context, terminalProvider);
 
   context.subscriptions.push(
     nelsonCompletionProvider,
+    completionProvider,
     nelsonNewFileDocumentProvider,
     ...terminalSubscriptions,
   );
 }
 //=============================================================================
-function deactivate() {}
+function deactivate() {
+  activeCompletionProvider?.dispose?.();
+  activeCompletionProvider = null;
+}
 //=============================================================================
 module.exports = {
   activate,
