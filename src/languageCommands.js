@@ -18,13 +18,25 @@
 //=============================================================================
 const vscode = require("vscode");
 //=============================================================================
+const NEW_SCRIPT_TEMPLATE = [
+  "% Nelson script",
+  "% Add your commands below and run this file with Nelson: Run Active File.",
+  "",
+  "clear",
+  "clc",
+  "",
+  "disp('Hello from Nelson')",
+  "",
+].join("\n");
+//=============================================================================
 async function newFileDocument() {
   vscode.workspace
-    .openTextDocument({ language: "nelson" })
+    .openTextDocument({ language: "nelson", content: NEW_SCRIPT_TEMPLATE })
     .then((v) => vscode.window.showTextDocument(v));
 }
 //=============================================================================
 module.exports = {
+  NEW_SCRIPT_TEMPLATE,
   newFileDocument,
 };
 //=============================================================================

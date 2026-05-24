@@ -16,7 +16,8 @@
   "bugs": "https://github.com/nelson-lang/nelson-vscode/issues",
   "icon": "images/nelson.png",
   "engines": {
-    "vscode": "1.106.0"
+    "node": ">=24.0.0",
+    "vscode": "^1.121.0"
   },
   "scripts": {
     "compile": "node esbuild.js",
@@ -26,6 +27,16 @@
   },
   "main": "./dist/extension.js",
   "type": "commonjs",
+  "activationEvents": [
+    "onLanguage:nelson",
+    "onCommand:nelson.newFileDocument",
+    "onCommand:nelson.createCustomTerminal",
+    "onCommand:nelson.selectRuntimePath",
+    "onCommand:nelson.runActiveFile",
+    "onCommand:nelson.runSelection",
+    "onCommand:nelson.statusBarAction",
+    "onCommand:nelson.showHelp"
+  ],
   "categories": [
     "Programming Languages",
     "Data Science",
@@ -39,11 +50,11 @@
     "snippet"
   ],
   "devDependencies": {
-    "@types/vscode": "1.106.1",
-    "esbuild": "0.27.0",
-    "jest": "29.7.0",
-    "prettier": "3.6.2",
-    "typescript": "5.9.3"
+    "@types/vscode": "1.120.0",
+    "esbuild": "0.28.0",
+    "jest": "30.4.2",
+    "prettier": "3.8.3",
+    "typescript": "6.0.3"
   },
   "contributes": {
     "languages": [
@@ -80,16 +91,35 @@
       {
         "command": "nelson.newFileDocument",
         "title": "Nelson: New Document",
-        "shortTitle": "Nelson File"
+        "shortTitle": "Nelson File",
+        "category": "Nelson"
       },
       {
         "command": "nelson.createCustomTerminal",
-        "title": "Nelson REPL"
+        "title": "Nelson: Open REPL",
+        "category": "Nelson"
+      },
+      {
+        "command": "nelson.selectRuntimePath",
+        "title": "Nelson: Select Runtime Path",
+        "category": "Nelson"
       },
       {
         "command": "nelson.runActiveFile",
         "title": "Nelson: Run Active File",
+        "category": "Nelson",
         "icon": "$(play)"
+      },
+      {
+        "command": "nelson.runSelection",
+        "title": "Nelson: Run Selection in REPL",
+        "category": "Nelson",
+        "icon": "$(run)"
+      },
+      {
+        "command": "nelson.showHelp",
+        "title": "Nelson: Help",
+        "category": "Nelson"
       }
     ],
     "configuration": {
@@ -122,8 +152,107 @@
           "command": "nelson.runActiveFile",
           "when": "resourceExtname == .m",
           "group": "navigation"
+        },
+        {
+          "command": "nelson.runSelection",
+          "when": "resourceExtname == .m && editorHasSelection",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "nelson.runSelection",
+          "when": "resourceExtname == .m && editorHasSelection",
+          "group": "nelson@0"
+        },
+        {
+          "command": "nelson.runActiveFile",
+          "when": "resourceExtname == .m",
+          "group": "nelson@1"
+        },
+        {
+          "command": "nelson.createCustomTerminal",
+          "when": "resourceExtname == .m",
+          "group": "nelson@2"
+        },
+        {
+          "command": "nelson.showHelp",
+          "when": "resourceExtname == .m",
+          "group": "nelson@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "nelson.runActiveFile",
+          "when": "resourceExtname == .m",
+          "group": "nelson@1"
+        },
+        {
+          "command": "nelson.createCustomTerminal",
+          "when": "resourceExtname == .m",
+          "group": "nelson@2"
+        },
+        {
+          "command": "nelson.newFileDocument",
+          "group": "nelson@3"
         }
       ]
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "nelson.getStarted",
+        "title": "Get Started with Nelson",
+        "description": "Configure Nelson in VS Code, open the REPL, and run your first script.",
+        "steps": [
+          {
+            "id": "nelson.install",
+            "title": "Install Nelson",
+            "description": "Install Nelson from the Nelson project, then make the executable available from PATH, NELSON_RUNTIME_PATH, or the Nelson runtime setting.",
+            "media": {
+              "image": "images/Nelson-vscode.png",
+              "altText": "Nelson extension overview"
+            }
+          },
+          {
+            "id": "nelson.selectRuntime",
+            "title": "Select the Runtime",
+            "description": "Run `Nelson: Select Runtime Path` if VS Code cannot find Nelson automatically.",
+            "completionEvents": [
+              "onCommand:nelson.selectRuntimePath"
+            ],
+            "media": {
+              "image": "images/Terminal-REPL.png",
+              "altText": "Nelson REPL terminal"
+            }
+          },
+          {
+            "id": "nelson.openRepl",
+            "title": "Open the REPL",
+            "description": "Run `Nelson: Open REPL` to start an interactive Nelson terminal.",
+            "completionEvents": [
+              "onCommand:nelson.createCustomTerminal"
+            ],
+            "media": {
+              "image": "images/Terminal-REPL.png",
+              "altText": "Nelson REPL terminal"
+            }
+          },
+          {
+            "id": "nelson.runCode",
+            "title": "Run Nelson Code",
+            "description": "Create a Nelson document, then use `Nelson: Run Active File` or `Nelson: Run Selection in REPL`.",
+            "completionEvents": [
+              "onCommand:nelson.newFileDocument",
+              "onCommand:nelson.runActiveFile",
+              "onCommand:nelson.runSelection"
+            ],
+            "media": {
+              "image": "images/Code-completion.png",
+              "altText": "Nelson code completion"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

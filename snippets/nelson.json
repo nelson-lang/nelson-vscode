@@ -40,5 +40,33 @@
     "prefix": "function",
     "body": ["function ${1:output} = ${2:name}(${3:input})", "\t$0", "end"],
     "description": "Declare function name, inputs, and outputs"
+  },
+  "Arguments Block": {
+    "prefix": "arguments",
+    "body": ["arguments", "\t${1:argument} ${2:mustBeNumeric}", "end"],
+    "description": "Validate function input arguments"
+  },
+  "Output Arguments Block": {
+    "prefix": "argumentsout",
+    "body": ["arguments (Output)", "\t${1:output} ${2:mustBeNumeric}", "end"],
+    "description": "Validate function output arguments"
+  },
+  "Optional Argument": {
+    "prefix": "argumentdefault",
+    "body": [
+      "arguments",
+      "\t${1:name} ${2:mustBeNumeric} = ${3:defaultValue}",
+      "end"
+    ],
+    "description": "Validate an optional argument with a default value"
+  },
+  "Name-Value Arguments Block": {
+    "prefix": "argumentsnv",
+    "body": [
+      "arguments",
+      "\t${1:options}.${2:name} ${3:mustBeMember} = ${4:defaultValue}",
+      "end"
+    ],
+    "description": "Validate name-value arguments"
   }
 }

@@ -25,6 +25,7 @@ describe("languageCommands", () => {
 
     expect(mockVscode.workspace.openTextDocument).toHaveBeenCalledWith({
       language: "nelson",
+      content: languageCommands.NEW_SCRIPT_TEMPLATE,
     });
     expect(mockVscode.window.showTextDocument).toHaveBeenCalledWith(
       fakeDocument,
@@ -40,6 +41,23 @@ describe("languageCommands", () => {
     await languageCommands.newFileDocument();
 
     const callArgs = mockVscode.workspace.openTextDocument.mock.calls[0][0];
-    expect(callArgs).toEqual({ language: "nelson" });
+    expect(callArgs).toEqual({
+      language: "nelson",
+      content: languageCommands.NEW_SCRIPT_TEMPLATE,
+    });
+  });
+
+  it("creates a document with starter Nelson script content", async () => {
+    const fakeDocument = { uri: "nelson", languageId: "nelson" };
+    mockVscode.workspace.openTextDocument.mockResolvedValue(fakeDocument);
+
+    const languageCommands = require("./languageCommands");
+
+    await languageCommands.newFileDocument();
+
+    expect(languageCommands.NEW_SCRIPT_TEMPLATE).toContain("Nelson script");
+    expect(languageCommands.NEW_SCRIPT_TEMPLATE).toContain(
+      "disp('Hello from Nelson')",
+    );
   });
 });

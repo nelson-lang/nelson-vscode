@@ -20,12 +20,29 @@ const vscode = require("vscode");
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
+const NelsonCompletionProvider = require("./completionProvider");
+//=============================================================================
+const NELSON_REPL_NAME = "Nelson REPL";
+const NELSON_DOCS_URL =
+  "https://github.com/nelson-lang/nelson-vscode#advanced-features-requiring-nelson-language-installed";
+const OPEN_SETTINGS_ACTION = "Open Settings";
+const SELECT_EXECUTABLE_ACTION = "Select Nelson Executable";
+const OPEN_DOCS_ACTION = "Open Docs";
+const OPEN_REPL_ACTION = "Open Nelson REPL";
+//=============================================================================
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 //=============================================================================
 class NelsonTerminalProvider {
   constructor() {
     this.terminalProfileProvider = null;
     this.createTerminalCommand = null;
+    this.selectRuntimePathCommand = null;
     this.runActiveFileCommand = null;
+    this.runSelectionCommand = null;
+    this.statusBarActionCommand = null;
+    this.showHelpCommand = null;
     this.nelsonTerminal = null;
     this.terminalReady = false;
     this.nelsonVersion = null;
@@ -130,6 +147,255 @@ class NelsonTerminalProvider {
     return { executable: executableName };
   }
 
+  async showRuntimeResolutionError(error) {
+    const action = await vscode.window.showErrorMessage(
+      error,
+      OPEN_SETTINGS_ACTION,
+      SELECT_EXECUTABLE_ACTION,
+      OPEN_DOCS_ACTION,
+    );
+
+    if (action === OPEN_SETTINGS_ACTION) {
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "nelson.runtimePath",
+      );
+    } else if (action === SELECT_EXECUTABLE_ACTION) {
+      await vscode.commands.executeCommand("nelson.selectRuntimePath");
+    } else if (action === OPEN_DOCS_ACTION) {
+      await vscode.env.openExternal(vscode.Uri.parse(NELSON_DOCS_URL));
+    }
+  }
+
+  async selectRuntimePath() {
+    const executableName =
+      process.platform === "win32" ? "nelson.bat" : "nelson";
+    const selected = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: "Select Nelson Executable",
+      filters:
+        process.platform === "win32"
+          ? { "Nelson executable": ["bat", "exe"], "All files": ["*"] }
+          : undefined,
+      title: "Select Nelson Executable",
+    });
+
+    if (!selected || selected.length === 0) {
+      return;
+    }
+
+    const executablePath = selected[0].fsPath;
+    if (
+      !fs.existsSync(executablePath) ||
+      !fs.statSync(executablePath).isFile()
+    ) {
+      vscode.window.showErrorMessage(
+        `Selected path is not a file: ${executablePath}`,
+      );
+      return;
+    }
+
+    const selectedName = path.basename(executablePath).toLowerCase();
+    if (
+      selectedName !== executableName.toLowerCase() &&
+      selectedName !== "nelson.exe"
+    ) {
+      const action = await vscode.window.showWarningMessage(
+        `The selected file is named "${path.basename(
+          executablePath,
+        )}", not "${executableName}". Save it as the Nelson runtime path anyway?`,
+        "Save Anyway",
+      );
+
+      if (action !== "Save Anyway") {
+        return;
+      }
+    }
+
+    await vscode.workspace
+      .getConfiguration("nelson")
+      .update("runtimePath", executablePath, vscode.ConfigurationTarget.Global);
+    this.nelsonVersion = null;
+    vscode.window.showInformationMessage(
+      `Nelson runtime path set to: ${executablePath}`,
+    );
+  }
+
+  async getDocumentToRun(resourceUri) {
+    if (resourceUri?.fsPath) {
+      const document = await vscode.workspace.openTextDocument(resourceUri);
+      await vscode.window.showTextDocument(document);
+      return document;
+    }
+
+    const editor = vscode.window.activeTextEditor;
+    return editor ? editor.document : null;
+  }
+
+  async createAdvancedTerminal(executable, progress) {
+    progress?.report({ message: "Starting Nelson REPL..." });
+    const terminal = vscode.window.createTerminal({
+      name: NELSON_REPL_NAME,
+      shellPath: executable,
+      shellArgs: ["-adv-cli"],
+      env: {
+        NELSON_RUNTIME_PATH: process.env.NELSON_RUNTIME_PATH || "",
+        VSCODE_SHELL_INTEGRATION: "0",
+      },
+    });
+    this.nelsonTerminal = terminal;
+    this.terminalReady = false;
+    terminal.show();
+    await delay(3000);
+    this.terminalReady = true;
+    return { terminal, isNewTerminal: true };
+  }
+
+  async findOrCreateAdvancedTerminal(executable, progress) {
+    let terminal = this.findNelsonTerminal();
+    if (!terminal) {
+      return this.createAdvancedTerminal(executable, progress);
+    }
+
+    progress?.report({ message: "Reusing Nelson REPL..." });
+    terminal.show();
+    await delay(200);
+    return { terminal, isNewTerminal: false };
+  }
+
+  async sendTextToTerminal(terminal, text, isNewTerminal) {
+    await delay(isNewTerminal ? 500 : 100);
+
+    for (const char of text) {
+      terminal.sendText(char, false);
+      await delay(2);
+    }
+  }
+
+  async runSelection() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showWarningMessage("No active Nelson editor.");
+      return;
+    }
+
+    const document = editor.document;
+    if (document.languageId !== "nelson" && !document.fileName.endsWith(".m")) {
+      vscode.window.showWarningMessage(
+        "Active editor is not a Nelson (.m) file.",
+      );
+      return;
+    }
+
+    const selectedText = editor.selections
+      .map((selection) => document.getText(selection).trim())
+      .filter(Boolean)
+      .join("\n");
+
+    if (!selectedText) {
+      vscode.window.showWarningMessage("Select Nelson code to run.");
+      return;
+    }
+
+    const { executable, error } = this.resolveNelsonExecutable();
+    if (error) {
+      await this.showRuntimeResolutionError(error);
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Running Nelson selection",
+        cancellable: false,
+      },
+      async (progress) => {
+        const { terminal, isNewTerminal } =
+          await this.findOrCreateAdvancedTerminal(executable, progress);
+        progress.report({ message: "Sending selected code..." });
+        await this.sendTextToTerminal(
+          terminal,
+          `${selectedText.replace(/\r\n/g, "\n")}\r`,
+          isNewTerminal,
+        );
+      },
+    );
+  }
+
+  async statusBarAction() {
+    const { error } = this.resolveNelsonExecutable();
+    if (error) {
+      await this.showRuntimeResolutionError(error);
+      return;
+    }
+
+    const action = await vscode.window.showQuickPick(
+      [OPEN_REPL_ACTION, SELECT_EXECUTABLE_ACTION],
+      {
+        placeHolder: "Choose a Nelson action",
+      },
+    );
+
+    if (action === OPEN_REPL_ACTION) {
+      await vscode.commands.executeCommand("nelson.createCustomTerminal");
+    } else if (action === SELECT_EXECUTABLE_ACTION) {
+      await vscode.commands.executeCommand("nelson.selectRuntimePath");
+    }
+  }
+
+  getActiveSymbol() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return null;
+    }
+
+    const range = editor.document.getWordRangeAtPosition(
+      editor.selection.active,
+    );
+    return range ? editor.document.getText(range) : null;
+  }
+
+  async showHelpForCurrentSymbol() {
+    const symbol = this.getActiveSymbol();
+    if (!symbol) {
+      vscode.window.showWarningMessage("No Nelson symbol under the cursor.");
+      return;
+    }
+
+    const { executable, error } = this.resolveNelsonExecutable();
+    if (error) {
+      await this.showRuntimeResolutionError(error);
+      return;
+    }
+
+    const output = vscode.window.createOutputChannel("Nelson Help");
+    output.clear();
+    output.show(true);
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Loading Nelson help: ${symbol}`,
+        cancellable: false,
+      },
+      async () => {
+        const rawHelpOutput =
+          await NelsonCompletionProvider.loadNelsonHelpOutput(
+            executable,
+            symbol,
+          );
+        const helpText = NelsonCompletionProvider.normalizeHelpText(
+          symbol,
+          rawHelpOutput,
+        );
+
+        output.appendLine(helpText || `No Nelson help found for "${symbol}".`);
+      },
+    );
+  }
+
   registerTerminalProvider() {
     this.terminalProfileProvider =
       vscode.window.registerTerminalProfileProvider("nelson.customTerminal", {
@@ -138,14 +404,14 @@ class NelsonTerminalProvider {
             const { executable, error } = this.resolveNelsonExecutable();
 
             if (error) {
-              vscode.window.showErrorMessage(error);
+              this.showRuntimeResolutionError(error);
               return null;
             }
 
             return {
               shellPath: executable,
               shellArgs: ["-cli"],
-              name: "Nelson REPL",
+              name: NELSON_REPL_NAME,
               env: {
                 NELSON_RUNTIME_PATH: process.env.NELSON_RUNTIME_PATH || "",
                 VSCODE_SHELL_INTEGRATION: "0",
@@ -162,17 +428,17 @@ class NelsonTerminalProvider {
 
     this.createTerminalCommand = vscode.commands.registerCommand(
       "nelson.createCustomTerminal",
-      () => {
+      async () => {
         try {
           const { error } = this.resolveNelsonExecutable();
 
           if (error) {
-            vscode.window.showErrorMessage(error);
+            await this.showRuntimeResolutionError(error);
             return;
           }
 
           const terminal = vscode.window.createTerminal({
-            name: "Nelson REPL",
+            name: NELSON_REPL_NAME,
             profileName: "nelson.customTerminal",
           });
           this.nelsonTerminal = terminal;
@@ -185,19 +451,21 @@ class NelsonTerminalProvider {
       },
     );
 
+    this.selectRuntimePathCommand = vscode.commands.registerCommand(
+      "nelson.selectRuntimePath",
+      () => this.selectRuntimePath(),
+    );
+
     this.runActiveFileCommand = vscode.commands.registerCommand(
       "nelson.runActiveFile",
-      async () => {
+      async (resourceUri) => {
         try {
-          // Get the active text editor
-          const editor = vscode.window.activeTextEditor;
-          if (!editor) {
+          const document = await this.getDocumentToRun(resourceUri);
+          if (!document) {
             vscode.window.showWarningMessage("No active file to run.");
             return;
           }
 
-          // Check if the file is a .m file
-          const document = editor.document;
           if (!document.fileName.endsWith(".m")) {
             vscode.window.showWarningMessage(
               "Active file is not a Nelson (.m) file.",
@@ -208,89 +476,71 @@ class NelsonTerminalProvider {
           // Check Nelson version
           const { executable, error } = this.resolveNelsonExecutable();
           if (error) {
-            vscode.window.showErrorMessage(error);
+            await this.showRuntimeResolutionError(error);
             return;
           }
 
-          // Check version support
-          if (!this.nelsonVersion) {
-            this.nelsonVersion = this.getNelsonVersion(executable);
-          }
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: "Running Nelson file",
+              cancellable: false,
+            },
+            async (progress) => {
+              progress.report({ message: "Checking Nelson version..." });
+              if (!this.nelsonVersion) {
+                this.nelsonVersion = this.getNelsonVersion(executable);
+              }
 
-          if (!this.isVersionSupported(this.nelsonVersion)) {
-            vscode.window.showErrorMessage(
-              "Run Active File requires Nelson version 1.16 or higher. Please update your Nelson installation.",
-            );
-            return;
-          }
+              if (!this.isVersionSupported(this.nelsonVersion)) {
+                vscode.window.showErrorMessage(
+                  "Run Active File requires Nelson version 1.16 or higher. Please update your Nelson installation.",
+                );
+                return;
+              }
 
-          // Check if the file is saved
-          if (document.isUntitled || document.isDirty) {
-            const saveResult = await document.save();
-            if (!saveResult) {
-              vscode.window.showWarningMessage(
-                "File must be saved before running.",
-              );
-              return;
-            }
-          }
+              if (document.isUntitled || document.isDirty) {
+                progress.report({ message: "Saving file..." });
+                const saveResult = await document.save();
+                if (!saveResult) {
+                  vscode.window.showWarningMessage(
+                    "Nelson file must be saved before it can be run.",
+                  );
+                  return;
+                }
+              }
 
-          // Find or create Nelson REPL terminal
-          let terminal = this.findNelsonTerminal();
-          let isNewTerminal = false;
-          if (!terminal) {
-            // Create a new Nelson REPL terminal
-            terminal = vscode.window.createTerminal({
-              name: "Nelson REPL",
-              shellPath: executable,
-              shellArgs: ["-adv-cli"],
-              env: {
-                NELSON_RUNTIME_PATH: process.env.NELSON_RUNTIME_PATH || "",
-                VSCODE_SHELL_INTEGRATION: "0",
-              },
-            });
-            this.nelsonTerminal = terminal;
-            this.terminalReady = false;
-            terminal.show();
-            isNewTerminal = true;
+              const { terminal, isNewTerminal } =
+                await this.findOrCreateAdvancedTerminal(executable, progress);
 
-            // Wait for terminal to initialize and show prompt
-            // Poll for a reasonable time to let Nelson start
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            this.terminalReady = true;
-          } else {
-            terminal.show();
-            // Give time for terminal to focus
-            await new Promise((resolve) => setTimeout(resolve, 200));
-          }
+              const normalizedPath = document.fileName.replace(/\\/g, "/");
+              const command = `run('${normalizedPath}')\r`;
 
-          // Get the file path
-          const filePath = document.fileName;
-
-          // Normalize the path for Nelson (use forward slashes)
-          const normalizedPath = filePath.replace(/\\/g, "/");
-
-          // Build the command
-          const command = `run('${normalizedPath}')\r`;
-
-          // Wait a bit more to ensure terminal is ready and at prompt
-          if (isNewTerminal) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          } else {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-
-          // Send command character by character with 2ms delay to avoid duplication
-          for (const char of command) {
-            terminal.sendText(char, false);
-            await new Promise((resolve) => setTimeout(resolve, 2));
-          }
+              progress.report({ message: "Sending run command..." });
+              await this.sendTextToTerminal(terminal, command, isNewTerminal);
+            },
+          );
         } catch (error) {
           vscode.window.showErrorMessage(
             `Failed to run file: ${error.message}`,
           );
         }
       },
+    );
+
+    this.runSelectionCommand = vscode.commands.registerCommand(
+      "nelson.runSelection",
+      () => this.runSelection(),
+    );
+
+    this.statusBarActionCommand = vscode.commands.registerCommand(
+      "nelson.statusBarAction",
+      () => this.statusBarAction(),
+    );
+
+    this.showHelpCommand = vscode.commands.registerCommand(
+      "nelson.showHelp",
+      () => this.showHelpForCurrentSymbol(),
     );
 
     // Listen for terminal close events to clean up reference
@@ -307,7 +557,11 @@ class NelsonTerminalProvider {
     return [
       this.terminalProfileProvider,
       this.createTerminalCommand,
+      this.selectRuntimePathCommand,
       this.runActiveFileCommand,
+      this.runSelectionCommand,
+      this.statusBarActionCommand,
+      this.showHelpCommand,
     ];
   }
 
@@ -324,7 +578,7 @@ class NelsonTerminalProvider {
     // Try to find an existing Nelson REPL terminal
     const terminals = vscode.window.terminals;
     for (const terminal of terminals) {
-      if (terminal.name === "Nelson REPL") {
+      if (terminal.name === NELSON_REPL_NAME) {
         this.nelsonTerminal = terminal;
         return terminal;
       }
